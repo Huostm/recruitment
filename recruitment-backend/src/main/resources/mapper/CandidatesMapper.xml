@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hstm.recruitment.mapper.CandidatesMapper">
+
+    <resultMap id="BaseResultMap" type="com.hstm.recruitment.entity.Candidates">
+            <id property="id" column="id" />
+            <result property="name" column="name" />
+            <result property="email" column="email" />
+            <result property="phone" column="phone" />
+            <result property="resumeText" column="resume_text" />
+            <result property="education" column="education" />
+            <result property="skills" column="skills" />
+            <result property="experience" column="experience" />
+            <result property="parsedData" column="parsed_data" />
+            <result property="matchScore" column="match_score" />
+            <result property="evaluationResult" column="evaluation_result" />
+            <result property="status" column="status" />
+            <result property="createdAt" column="created_at" />
+            <result property="updatedAt" column="updated_at" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,name,email,phone,resume_text,education,
+        skills,experience,parsed_data,match_score,evaluation_result,
+        status,created_at,updated_at
+    </sql>
+</mapper>
