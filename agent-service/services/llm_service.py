@@ -1,4 +1,5 @@
 import os
+from dotenv import load_dotenv
 
 from langchain.chat_models import init_chat_model
 from langchain_ollama import OllamaEmbeddings
@@ -6,6 +7,12 @@ from langchain_ollama import OllamaEmbeddings
 
 class LLMService:
     def __init__(self):
+        load_dotenv()  # 加载 .env 文件
+
+        # 禁用代理，避免 Ollama 本地连接走代理
+        os.environ['NO_PROXY'] = 'localhost,127.0.0.1'
+        os.environ['no_proxy'] = 'localhost,127.0.0.1'
+
         self.deepseek_api_key = os.getenv("DEEPSEEK_API_KEY")
         self.model_name = os.getenv("MODEL_NAME")
         self.ollama_base_url = os.getenv("OLLAMA_BASE_URL")
