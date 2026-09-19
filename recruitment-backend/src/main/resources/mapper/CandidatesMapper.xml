@@ -15,6 +15,8 @@
             <result property="experience" column="experience" />
             <result property="parsedData" column="parsed_data" />
             <result property="matchScore" column="match_score" />
+            <result property="matchDetails" column="match_details" />
+            <result property="evaluationScore" column="evaluation_score" />
             <result property="evaluationResult" column="evaluation_result" />
             <result property="status" column="status" />
             <result property="createdAt" column="created_at" />
@@ -23,7 +25,7 @@
 
     <sql id="Base_Column_List">
         id,name,email,phone,resume_text,education,
-        skills,experience,parsed_data,match_score,evaluation_result,
-        status,created_at,updated_at
+        skills,experience,parsed_data,match_score,match_details,
+        evaluation_score,evaluation_result,status,created_at,updated_at
     </sql>
 </mapper>

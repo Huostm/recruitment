@@ -1,27 +1,32 @@
 package com.hstm.recruitment.entity;
 
-import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.annotation.FieldFill;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
-import java.time.LocalDateTime;
+import java.util.Date;
 
 /**
- * @Author: zhangyuanfang
- * @CreateTime: 2026-09-04
- * @Description: 人工审批表对应实体类
+ * @Author: recruitment-system
+ * @Description: 人工审批记录表
  */
-
+@TableName("approvals")
 @Data
 public class Approvals {
-
     @TableId(type = IdType.AUTO)
     private Long id;
 
     private Long candidateId;
+
     private String approver;
+
     private String decision;
+
     private String reason;
 
     @TableField(fill = FieldFill.INSERT)
-    private LocalDateTime approvedAt;
+    private Date approvedAt;
 }

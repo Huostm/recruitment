@@ -65,10 +65,10 @@ class EvaluatorAgent:
             overall_score = evaluation.get('overall_score', 0)
             if overall_score >= 70:
                 status = "approved"  # 自动发送面试邀请
-            elif overall_score >= 50:
+            elif overall_score >= 30:
                 status = "pending"  # 人工审核
             else:
-                status = "rejected"  # 直接挂掉，但人工可捞回
+                status = "rejected"  # 直接拒绝
 
             evaluation['status'] = status
             print(f"评估完成: {name} - 综合得分 {overall_score}, 状态: {status}")
@@ -181,7 +181,7 @@ JD 匹配得分（Agent 2 已完成）:
 评估标准：
 - overall_score = (tech_depth_score + learning_ability_score) / 2
 - overall_score >= 70 → 推荐
-- 50 <= overall_score < 70 → 待定
-- overall_score < 50 → 不推荐
+- 30 <= overall_score < 70 → 待定
+- overall_score < 30 → 不推荐
 """
         return prompt
