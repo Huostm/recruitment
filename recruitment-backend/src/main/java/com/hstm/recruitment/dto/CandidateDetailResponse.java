@@ -33,6 +33,10 @@ public class CandidateDetailResponse {
 
     private Object matchDetails;
 
+    private BigDecimal evaluationScore;
+
+    private String resumeText;
+
     private String status;
 
     private Date createdAt;

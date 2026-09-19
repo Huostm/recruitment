@@ -94,6 +94,44 @@ public class CandidatesServiceImpl extends ServiceImpl<CandidatesMapper, Candida
                     ? BigDecimal.valueOf(((Number) scoreObj).doubleValue())
                     : new BigDecimal(scoreObj.toString());
 
+            // 检查 Agent 2 的状态
+            String agent2Status = matchData.get("status") != null ? matchData.get("status").toString() : "pass";
+
+            // 如果 Agent 2 判定为 rejected，直接保存为拒绝状态，不再调用 Agent 3
+            if ("rejected".equals(agent2Status)) {
+                log.info("Agent 2 判定为不合格（匹配度: {}），直接拒绝，不进入 Agent 3", matchScore);
+
+                Candidates candidate = new Candidates();
+                candidate.setName(name);
+                candidate.setEmail(email);
+                candidate.setPhone(phone);
+                candidate.setResumeText(resumeText);
+                candidate.setEducation(parsedData.get("education"));
+                candidate.setSkills(parsedData.get("skills"));
+                candidate.setExperience(parsedData.get("experience"));
+                candidate.setParsedData(parsedData);
+                candidate.setMatchScore(matchScore);
+                candidate.setMatchDetails(matchData);
+                candidate.setEvaluationScore(BigDecimal.ZERO);
+                candidate.setEvaluationResult(null);
+                candidate.setStatus("rejected");
+
+                Date now = new Date();
+                candidate.setCreatedAt(now);
+                candidate.setUpdatedAt(now);
+
+                this.save(candidate);
+                log.info("候选人保存成功，ID: {}，状态: rejected", candidate.getId());
+
+                Map<String, Object> result = new HashMap<>();
+                result.put("candidate_id", candidate.getId());
+                result.put("name", name);
+                result.put("match_score", matchScore);
+                result.put("evaluation_score", BigDecimal.ZERO);
+                result.put("status", "rejected");
+                return result;
+            }
+
             // 6. 调用 Agent 3 进行深度评估
             Map<String, Object> evaluateResult = agentService.evaluate(parsedData, matchData);
 
@@ -190,6 +228,8 @@ public class CandidatesServiceImpl extends ServiceImpl<CandidatesMapper, Candida
         response.setExperience(candidate.getExperience());
         response.setMatchScore(candidate.getMatchScore());
         response.setMatchDetails(candidate.getMatchDetails());
+        response.setEvaluationScore(candidate.getEvaluationScore());
+        response.setResumeText(candidate.getResumeText());
         response.setStatus(candidate.getStatus());
         response.setCreatedAt(candidate.getCreatedAt());
         response.setUpdatedAt(candidate.getUpdatedAt());
@@ -222,6 +262,7 @@ public class CandidatesServiceImpl extends ServiceImpl<CandidatesMapper, Candida
                     response.setExperience(candidate.getExperience());
                     response.setMatchScore(candidate.getMatchScore());
                     response.setMatchDetails(candidate.getMatchDetails());
+                    response.setEvaluationScore(candidate.getEvaluationScore());
                     response.setStatus(candidate.getStatus());
                     response.setCreatedAt(candidate.getCreatedAt());
                     response.setUpdatedAt(candidate.getUpdatedAt());
@@ -299,7 +340,7 @@ public class CandidatesServiceImpl extends ServiceImpl<CandidatesMapper, Candida
         invitation.setCandidateId(id);
         invitation.setEmailSubject(emailSubject);
         invitation.setEmailBody(emailBody);
-        invitation.setRecipientEmail("2172948307@qq.com");
+        invitation.setRecipientEmail(candidate.getEmail() != null ? candidate.getEmail() : "2172948307@qq.com");
         invitation.setSentAt(new Date());
         invitation.setStatus("sent");
         interviewInvitationsMapper.insert(invitation);
@@ -308,11 +349,11 @@ public class CandidatesServiceImpl extends ServiceImpl<CandidatesMapper, Candida
         try {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom("2172948307@qq.com");
-            message.setTo("2172948307@qq.com");
+            message.setTo(candidate.getEmail() != null ? candidate.getEmail() : "2172948307@qq.com");
             message.setSubject(emailSubject);
             message.setText(emailBody);
             mailSender.send(message);
-            log.info("面试邀请邮件已发送给候选人 {}, 接收邮箱: 2172948307@qq.com", id);
+            log.info("面试邀请邮件已发送给候选人 {}, 接收邮箱: {}", id, candidate.getEmail());
         } catch (Exception e) {
             log.error("邮件发送失败: ", e);
             throw new RuntimeException("邮件发送失败: " + e.getMessage());

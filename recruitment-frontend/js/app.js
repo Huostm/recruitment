@@ -200,11 +200,11 @@ function createCandidateCard(candidate) {
 
     const status = statusMap[candidate.status] || { text: candidate.status, class: 'pending' };
 
-    // 评分样式
+    // 评分样式 - 优先使用 evaluationScore
     let scoreClass = 'low';
-    const score = candidate.evaluationScore || candidate.matchScore || 0;
-    if (score >= 70) scoreClass = 'high';
-    else if (score >= 30) scoreClass = 'medium';
+    let displayScore = candidate.evaluationScore || candidate.matchScore || 0;
+    if (displayScore >= 70) scoreClass = 'high';
+    else if (displayScore >= 30) scoreClass = 'medium';
 
     // 解析 parsedData
     let email = candidate.email || '';
@@ -231,22 +231,17 @@ function createCandidateCard(candidate) {
             </div>
 
             <div class="candidate-details">
-                ${candidate.evaluationScore ? `
-                    <div class="detail-row">
-                        <span class="detail-label">综合评分:</span>
-                        <span class="detail-value">
-                            <span class="score-display ${scoreClass}">${candidate.evaluationScore.toFixed(1)}</span>
-                        </span>
-                    </div>
-                ` : ''}
-                ${candidate.matchScore ? `
-                    <div class="detail-row">
-                        <span class="detail-label">匹配度:</span>
-                        <span class="detail-value">
-                            <span class="score-display ${scoreClass}">${candidate.matchScore.toFixed(1)}</span>
-                        </span>
-                    </div>
-                ` : ''}
+                <div class="detail-row">
+                    <span class="detail-label">综合评分:</span>
+                    <span class="detail-value">
+                        <span class="score-display ${scoreClass}">${displayScore.toFixed(1)}</span>
+                    </span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">提交时间:</span>
+                    <span class="detail-value">${new Date(candidate.createdAt).toLocaleDateString('zh-CN')}</span>
+                </div>
+            </div>
                 ${candidate.createdAt ? `
                     <div class="detail-row">
                         <span class="detail-label">提交时间:</span>
@@ -353,16 +348,45 @@ async function showCandidateDetail(id) {
         const response = await fetch(`${API_BASE_URL}/candidates/${id}`);
         const result = await response.json();
 
+        console.log('API返回结果:', result);
+
         if (result.code === 200) {
             const candidate = result.data;
-            detailContainer.innerHTML = renderCandidateDetail(candidate);
+            console.log('候选人数据:', candidate);
+
+            // 处理过度转义的 JSON 字段
+            ['education', 'skills', 'experience', 'matchDetails', 'evaluationResult'].forEach(field => {
+                if (candidate[field] && typeof candidate[field] === 'string') {
+                    try {
+                        candidate[field] = JSON.parse(candidate[field]);
+                    } catch (e) {
+                        console.warn(`解析 ${field} 失败:`, e);
+                    }
+                }
+            });
+
+            console.log('准备渲染，candidate对象:', candidate);
+            const html = renderCandidateDetail(candidate);
+            console.log('渲染HTML成功，HTML长度:', html.length);
+            detailContainer.innerHTML = html;
         } else {
+            console.error('API返回错误:', result);
             detailContainer.innerHTML = '<p>加载失败</p>';
         }
     } catch (error) {
         console.error('加载候选人详情失败:', error);
+        console.error('错误堆栈:', error.stack);
         detailContainer.innerHTML = '<p>加载失败，请稍后重试</p>';
     }
+}
+
+function getStatusText(status) {
+    const statusMap = {
+        'pending': '待审核',
+        'approved': '已通过',
+        'rejected': '已拒绝'
+    };
+    return statusMap[status] || status;
 }
 
 function renderCandidateDetail(candidate) {
@@ -370,33 +394,28 @@ function renderCandidateDetail(candidate) {
         <div class="detail-section">
             <h3>基本信息</h3>
             <div class="detail-item"><strong>姓名:</strong> <span>${candidate.name || '-'}</span></div>
-            <div class="detail-item"><strong>状态:</strong> <span>${candidate.status || '-'}</span></div>
+            <div class="detail-item"><strong>邮箱:</strong> <span>${candidate.email || '-'}</span></div>
+            <div class="detail-item"><strong>电话:</strong> <span>${candidate.phone || '-'}</span></div>
+            <div class="detail-item"><strong>状态:</strong> <span class="status-badge ${candidate.status}">${getStatusText(candidate.status)}</span></div>
             <div class="detail-item"><strong>提交时间:</strong> <span>${formatDate(candidate.createdAt)}</span></div>
         </div>
     `;
 
-    // 解析简历数据
-    if (candidate.parsedData) {
-        const parsed = typeof candidate.parsedData === 'string'
-            ? JSON.parse(candidate.parsedData)
-            : candidate.parsedData;
+    // 完整简历原文
+    if (candidate.resumeText) {
+        const escapedText = candidate.resumeText
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;')
+            .replace(/\r\n/g, '<br>')
+            .replace(/\n/g, '<br>');
 
         html += `
             <div class="detail-section">
-                <h3>简历信息</h3>
-                ${parsed.contact ? `
-                    <div class="detail-item"><strong>邮箱:</strong> <span>${parsed.contact.email || '-'}</span></div>
-                    <div class="detail-item"><strong>电话:</strong> <span>${parsed.contact.phone || '-'}</span></div>
-                ` : ''}
-                ${parsed.education ? `
-                    <div class="detail-item"><strong>学历:</strong> <span>${JSON.stringify(parsed.education)}</span></div>
-                ` : ''}
-                ${parsed.work_experience ? `
-                    <div class="detail-item"><strong>工作经验:</strong> <span>${JSON.stringify(parsed.work_experience)}</span></div>
-                ` : ''}
-                ${parsed.skills ? `
-                    <div class="detail-item"><strong>技能:</strong> <span>${Array.isArray(parsed.skills) ? parsed.skills.join(', ') : JSON.stringify(parsed.skills)}</span></div>
-                ` : ''}
+                <h3>完整简历</h3>
+                <div class="resume-content">${escapedText}</div>
             </div>
         `;
     }
@@ -418,26 +437,30 @@ function renderCandidateDetail(candidate) {
 
     // 评估详情
     if (candidate.evaluationResult) {
-        const evalResult = typeof candidate.evaluationResult === 'string'
-            ? JSON.parse(candidate.evaluationResult)
-            : candidate.evaluationResult;
+        try {
+            const evalResult = typeof candidate.evaluationResult === 'string'
+                ? JSON.parse(candidate.evaluationResult)
+                : candidate.evaluationResult;
 
-        html += `
-            <div class="detail-section">
-                <h3>详细评估</h3>
-                <div class="detail-item"><strong>技术深度:</strong> <span>${evalResult.tech_depth_score || '-'}</span></div>
-                <div class="detail-item"><strong>学习能力:</strong> <span>${evalResult.learning_ability_score || '-'}</span></div>
-                ${evalResult.strengths ? `
-                    <div class="detail-item"><strong>优势:</strong> <span>${evalResult.strengths}</span></div>
-                ` : ''}
-                ${evalResult.concerns ? `
-                    <div class="detail-item"><strong>关注点:</strong> <span>${evalResult.concerns}</span></div>
-                ` : ''}
-                ${evalResult.recommendation ? `
-                    <div class="detail-item"><strong>建议:</strong> <span>${evalResult.recommendation}</span></div>
-                ` : ''}
-            </div>
-        `;
+            html += `
+                <div class="detail-section">
+                    <h3>详细评估</h3>
+                    <div class="detail-item"><strong>技术深度:</strong> <span>${evalResult.tech_depth_score || '-'}</span></div>
+                    <div class="detail-item"><strong>学习能力:</strong> <span>${evalResult.learning_ability_score || '-'}</span></div>
+                    ${evalResult.strengths ? `
+                        <div class="detail-item"><strong>优势:</strong> <span>${evalResult.strengths}</span></div>
+                    ` : ''}
+                    ${evalResult.concerns ? `
+                        <div class="detail-item"><strong>关注点:</strong> <span>${evalResult.concerns}</span></div>
+                    ` : ''}
+                    ${evalResult.recommendation ? `
+                        <div class="detail-item"><strong>建议:</strong> <span>${evalResult.recommendation}</span></div>
+                    ` : ''}
+                </div>
+            `;
+        } catch (e) {
+            console.error('解析评估详情失败:', e);
+        }
     }
 
     return html;

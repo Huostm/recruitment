@@ -8,7 +8,7 @@ class JDMatchAgent:
     def __init__(self):
         self.llm_service = LLMService()
         self.milvus_service = MilvusService()
-        self.threshold = 50  # 50分以上进入深度评估，50分以下直接淘汰
+        self.threshold = 50
         self.jd_education_requirement = self._extract_jd_education_requirement()
 
     def match(self, parsed_resume: Dict) -> Dict:
@@ -62,7 +62,6 @@ class JDMatchAgent:
 
             # 6. 收集所有分数 >= 70% 的 JD chunks
             all_chunks = skill_matches + experience_matches
-            # 筛选出分数 >= 0.8 的
             top_chunks = [chunk for chunk in all_chunks if chunk['score'] >= 0.7]
             # 按分数排序
             top_chunks = sorted(top_chunks, key=lambda x: x['score'], reverse=True)
@@ -227,7 +226,7 @@ class JDMatchAgent:
             "博士": 4
         }
 
-        # 获取候选人学历等级（简历中会明确写出）
+        # 获取候选人学历等级
         candidate_degree = education.get('degree', '')
         candidate_level = 0
         for deg, level in degree_levels.items():
